@@ -5,82 +5,104 @@ import { UserRto, toUserRto, toUserRtoCollection } from '../rtos/user.rto';
 import { AppError } from '../utils/app-error';
 
 export class UserService {
-  constructor(private readonly em: EntityManager) {}
+  constructor(private readonly entityManager: EntityManager) {}
 
-  async createUser(dto: CreateUserDto): Promise<UserRto> {
-    const existingUser = await this.em.findOne(UserEntity, { email: dto.email });
-    if (existingUser) {
-      throw AppError.conflict(`User with email '${dto.email}' already exists`);
+  async createUser(userCreationData: CreateUserDto): Promise<UserRto> {
+    const existingUserWithEmail = await this.entityManager.findOne(UserEntity, {
+      email: userCreationData.email,
+    });
+    
+    const isEmailAlreadyRegistered = Boolean(existingUserWithEmail);
+    if (isEmailAlreadyRegistered) {
+      throw AppError.conflict(`User with email '${userCreationData.email}' already exists`);
     }
 
-    const user = new UserEntity({
-      email: dto.email,
-      name: dto.name,
-      role: dto.role,
+    const newUser = new UserEntity({
+      email: userCreationData.email,
+      name: userCreationData.name,
+      role: userCreationData.role,
     });
 
-    await this.em.persistAndFlush(user);
-    return toUserRto(user);
+    await this.entityManager.persistAndFlush(newUser);
+    return toUserRto(newUser);
   }
 
-  async getUserById(id: string): Promise<UserRto> {
-    const user = await this.em.findOne(UserEntity, { id });
-    if (!user) {
-      throw AppError.notFound(`User with ID '${id}' not found`);
+  async getUserById(userId: string): Promise<UserRto> {
+    const foundUser = await this.entityManager.findOne(UserEntity, { id: userId });
+    
+    const isUserNotFound = !foundUser;
+    if (isUserNotFound) {
+      throw AppError.notFound(`User with ID '${userId}' not found`);
     }
-    return toUserRto(user);
+
+    return toUserRto(foundUser);
   }
 
-  async getAllUsers(query: PaginationQueryDto): Promise<{ users: UserRto[]; total: number }> {
-    const { page = 1, limit = 10, search } = query;
-    const offset = (page - 1) * limit;
+  async getAllUsers(paginationOptions: PaginationQueryDto): Promise<{ users: UserRto[]; total: number }> {
+    const pageNumber = paginationOptions.page || 1;
+    const itemsPerPage = paginationOptions.limit || 10;
+    const searchFilterText = paginationOptions.search;
+    const queryOffset = (pageNumber - 1) * itemsPerPage;
 
-    const where = search
+    const hasSearchFilter = Boolean(searchFilterText);
+    const searchCriteria = hasSearchFilter
       ? {
           $or: [
-            { email: { $ilike: `%${search}%` } },
-            { name: { $ilike: `%${search}%` } },
+            { email: { $ilike: `%${searchFilterText}%` } },
+            { name: { $ilike: `%${searchFilterText}%` } },
           ],
         }
       : {};
 
-    const [users, total] = await this.em.findAndCount(UserEntity, where, {
-      limit,
-      offset,
-      orderBy: { createdAt: 'DESC' },
-    });
+    const [userEntitiesList, totalUsersCount] = await this.entityManager.findAndCount(
+      UserEntity,
+      searchCriteria,
+      {
+        limit: itemsPerPage,
+        offset: queryOffset,
+        orderBy: { createdAt: 'DESC' },
+      }
+    );
 
     return {
-      users: toUserRtoCollection(users),
-      total,
+      users: toUserRtoCollection(userEntitiesList),
+      total: totalUsersCount,
     };
   }
 
-  async updateUser(id: string, dto: UpdateUserDto): Promise<UserRto> {
-    const user = await this.em.findOne(UserEntity, { id });
-    if (!user) {
-      throw AppError.notFound(`User with ID '${id}' not found`);
+  async updateUser(userId: string, updateData: UpdateUserDto): Promise<UserRto> {
+    const existingUser = await this.entityManager.findOne(UserEntity, { id: userId });
+    
+    const isUserNotFound = !existingUser;
+    if (isUserNotFound) {
+      throw AppError.notFound(`User with ID '${userId}' not found`);
     }
 
-    if (dto.email && dto.email !== user.email) {
-      const emailConflict = await this.em.findOne(UserEntity, { email: dto.email });
-      if (emailConflict) {
-        throw AppError.conflict(`User with email '${dto.email}' already exists`);
+    const isEmailBeingChanged = Boolean(updateData.email) && updateData.email !== existingUser.email;
+    if (isEmailBeingChanged) {
+      const emailOwnerUser = await this.entityManager.findOne(UserEntity, {
+        email: updateData.email,
+      });
+      const isEmailTakenByAnotherUser = Boolean(emailOwnerUser);
+      if (isEmailTakenByAnotherUser) {
+        throw AppError.conflict(`User with email '${updateData.email}' already exists`);
       }
     }
 
-    this.em.assign(user, dto);
-    await this.em.flush();
+    this.entityManager.assign(existingUser, updateData);
+    await this.entityManager.flush();
 
-    return toUserRto(user);
+    return toUserRto(existingUser);
   }
 
-  async deleteUser(id: string): Promise<void> {
-    const user = await this.em.findOne(UserEntity, { id });
-    if (!user) {
-      throw AppError.notFound(`User with ID '${id}' not found`);
+  async deleteUser(userId: string): Promise<void> {
+    const existingUser = await this.entityManager.findOne(UserEntity, { id: userId });
+    
+    const isUserNotFound = !existingUser;
+    if (isUserNotFound) {
+      throw AppError.notFound(`User with ID '${userId}' not found`);
     }
 
-    await this.em.removeAndFlush(user);
+    await this.entityManager.removeAndFlush(existingUser);
   }
 }
