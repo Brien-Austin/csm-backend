@@ -1,9 +1,10 @@
 import { z } from 'zod';
+import { UserRole } from '../enums/user.enum';
 
 export const CreateUserDtoSchema = z.object({
   email: z.string().email('Invalid email address format'),
   name: z.string().min(2, 'Name must be at least 2 characters long'),
-  role: z.enum(['admin', 'user', 'manager']).optional().default('user'),
+  role: z.nativeEnum(UserRole).optional().default(UserRole.USER),
 });
 
 export type CreateUserDto = z.infer<typeof CreateUserDtoSchema>;
@@ -11,7 +12,7 @@ export type CreateUserDto = z.infer<typeof CreateUserDtoSchema>;
 export const UpdateUserDtoSchema = z.object({
   email: z.string().email().optional(),
   name: z.string().min(2).optional(),
-  role: z.enum(['admin', 'user', 'manager']).optional(),
+  role: z.nativeEnum(UserRole).optional(),
   isActive: z.boolean().optional(),
 });
 

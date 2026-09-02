@@ -13,7 +13,7 @@ export class UserService {
       throw AppError.conflict(`User with email '${dto.email}' already exists`);
     }
 
-    const user = this.em.create(UserEntity, {
+    const user = new UserEntity({
       email: dto.email,
       name: dto.name,
       role: dto.role,

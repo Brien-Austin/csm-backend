@@ -3,6 +3,11 @@ import { Migrator } from '@mikro-orm/migrations';
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import path from 'path';
 import { env } from './env.config';
+import { UserEntity } from '../entities/user.entity';
+import { AccountEntity } from '../entities/account.entity';
+import { ContactEntity } from '../entities/contact.entity';
+import { ActivityEntity } from '../entities/activity.entity';
+import { TaskEntity } from '../entities/task.entity';
 
 export default defineConfig({
   host: env.DB_HOST,
@@ -23,10 +28,14 @@ export default defineConfig({
     max: env.DB_POOL_MAX,
     idleTimeoutMillis: 30000,
   },
-  entities: ['./dist/entities/**/*.js'],
-  entitiesTs: ['./src/entities/**/*.ts'],
+  entities: [UserEntity, AccountEntity, ContactEntity, ActivityEntity, TaskEntity],
+  entitiesTs: [UserEntity, AccountEntity, ContactEntity, ActivityEntity, TaskEntity],
   metadataProvider: TsMorphMetadataProvider,
   debug: env.NODE_ENV === 'development',
+  schemaGenerator: {
+    createSchema: true,
+    ignoreSchema: ['auth', 'storage', 'realtime', 'vault', 'extensions', 'graphql', 'pg_catalog', 'information_schema', 'pgsodium', 'net', 'graphql_public'],
+  },
   extensions: [Migrator],
   migrations: {
     path: path.join(process.cwd(), 'dist/migrations'),
@@ -41,7 +50,6 @@ export default defineConfig({
     fileName: (timestamp: string, name?: string) =>
       `Migration${timestamp}${name ? '_' + name : ''}`,
   },
-  // High performance & memory optimization settings
-  flushMode: 0, // FlushMode.AUTO
-  allowGlobalContext: false, // Force RequestContext middleware usage to avoid memory leaks
+  flushMode: 0,
+  allowGlobalContext: false,
 });
