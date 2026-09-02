@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { UserService } from '../services/user.service';
-import { buildSuccessRto } from '../rtos/api-response.rto';
+import { buildSuccessRto, buildPaginatedSuccessRto } from '../rtos/api-response.rto';
 import { AppError } from '../utils/app-error';
 
 export class UserController {
@@ -37,16 +37,15 @@ export class UserController {
   static async getAllUsers(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
       const userService = UserController.getService(request);
-      const { users, total } = await userService.getAllUsers(request.query as never);
-      const pageNumber = request.query.page ? parseInt(request.query.page as string, 10) : 1;
-      const itemsPerPage = request.query.limit ? parseInt(request.query.limit as string, 10) : 10;
-
+      const paginatedResult = await userService.getAllUsers(request.query as never);
       response.status(200).json(
-        buildSuccessRto(users, 'Users retrieved successfully', {
-          page: pageNumber,
-          limit: itemsPerPage,
-          total,
-        })
+        buildPaginatedSuccessRto(
+          paginatedResult.items,
+          paginatedResult.page,
+          paginatedResult.limit,
+          paginatedResult.total,
+          'Users list retrieved successfully'
+        )
       );
     } catch (error) {
       nextFunction(error);

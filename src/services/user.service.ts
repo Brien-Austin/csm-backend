@@ -2,6 +2,7 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { UserEntity } from '../entities/user.entity';
 import { CreateUserDto, UpdateUserDto, PaginationQueryDto } from '../dtos/user.dto';
 import { UserRto, toUserRto, toUserRtoCollection } from '../rtos/user.rto';
+import { PaginatedResult } from '../rtos/api-response.rto';
 import { AppError } from '../utils/app-error';
 
 export class UserService {
@@ -38,7 +39,7 @@ export class UserService {
     return toUserRto(foundUser);
   }
 
-  async getAllUsers(paginationOptions: PaginationQueryDto): Promise<{ users: UserRto[]; total: number }> {
+  async getAllUsers(paginationOptions: PaginationQueryDto): Promise<PaginatedResult<UserRto>> {
     const pageNumber = paginationOptions.page || 1;
     const itemsPerPage = paginationOptions.limit || 10;
     const searchFilterText = paginationOptions.search;
@@ -65,8 +66,10 @@ export class UserService {
     );
 
     return {
-      users: toUserRtoCollection(userEntitiesList),
+      items: toUserRtoCollection(userEntitiesList),
       total: totalUsersCount,
+      page: pageNumber,
+      limit: itemsPerPage,
     };
   }
 

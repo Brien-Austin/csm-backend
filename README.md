@@ -1,146 +1,58 @@
-# Express.js TypeScript Backend with MikroORM, Sentry, & Render
+# Express.js TypeScript Backend - CSM Core Module 1 API
 
 A robust, memory-efficient Express.js backend built with TypeScript, MikroORM (PostgreSQL / Supabase), Sentry error monitoring, Zod validation, DTO/RTO patterns, and Render deployment setup.
 
-## 🚀 Features
+---
 
-- **Express.js + TypeScript**: Strict mode configuration with ES2022 output.
-- **MikroORM & PostgreSQL**: Native support for Supabase database (pooling and SSL ready).
-- **Automated Database Migrations**: CLI support for creating and running migrations (`npm run migration:create`, `npm run migration:up`).
-- **Clean Layered Architecture**:
-  - **Controllers**: Handle HTTP input validation and response formatting.
-  - **Services**: Pure business logic operating on DTO inputs and returning entity/RTO outputs.
-  - **Middlewares**: Centralized error handling, request logging, and MikroORM request scope management.
-  - **Types / DTOs / RTOs**: Defined strictly *outside* service files in `src/dtos/` and `src/rtos/`.
-- **Sentry Integration**: Global exception capture and error logging.
-- **Memory Efficiency**:
-  - `RequestContext` middleware guarantees per-request entity manager isolation to prevent memory retention.
-  - Graceful process termination (`SIGTERM`/`SIGINT`) releasing DB pool connections properly.
-- **Render Ready**: `render.yaml` blueprint included for instant Render deployment.
+## 🚀 Module 1 API Endpoints Summary
+
+### 1. Health Check
+- `GET /health` - Application and Database connection health probe.
+
+### 2. Accounts API (`/api/v1/accounts`)
+- `POST /api/v1/accounts` - Create Account (Identity, HQ/Geography, Classification, Health, Risk, Contract, Context).
+- `GET /api/v1/accounts` - List Accounts with pagination, search, and filtering (`?page=1&limit=10&search=acme&accountType=Customer&segment=Enterprise&healthStatus=Healthy`).
+- `GET /api/v1/accounts/:id` - Get Account details by UUID.
+- `PATCH /api/v1/accounts/:id` - Update Account details.
+- `DELETE /api/v1/accounts/:id` - Delete/Archive Account.
+- `GET /api/v1/accounts/:accountId/contacts` - List Contacts for an Account.
+- `GET /api/v1/accounts/:accountId/activities` - List Activities for an Account.
+- `GET /api/v1/accounts/:accountId/tasks` - List Tasks for an Account.
+
+### 3. Contacts API (`/api/v1/contacts`)
+- `POST /api/v1/contacts` - Create Contact linked to an Account.
+- `GET /api/v1/contacts` - List Contacts (`?accountId=...&search=John`).
+- `GET /api/v1/contacts/:id` - Get Contact by UUID.
+- `PATCH /api/v1/contacts/:id` - Update Contact details.
+- `DELETE /api/v1/contacts/:id` - Delete Contact.
+
+### 4. Activities API (`/api/v1/activities`)
+- `POST /api/v1/activities` - Log Activity against an Account (optional Contact & PerformedBy User).
+- `GET /api/v1/activities` - List Activities (`?accountId=...&type=Call`).
+- `GET /api/v1/activities/:id` - Get Activity details.
+- `PATCH /api/v1/activities/:id` - Update Activity.
+- `DELETE /api/v1/activities/:id` - Delete Activity.
+
+### 5. Tasks API (`/api/v1/tasks`)
+- `POST /api/v1/tasks` - Create Follow-up Task against an Account (optional Contact & Assigned User).
+- `GET /api/v1/tasks` - List Tasks (`?accountId=...&status=Pending&priority=High`).
+- `GET /api/v1/tasks/:id` - Get Task details.
+- `PATCH /api/v1/tasks/:id` - Update Task.
+- `DELETE /api/v1/tasks/:id` - Delete Task.
+
+### 6. Users API (`/api/v1/users`)
+- `POST /api/v1/users` - Create User.
+- `GET /api/v1/users` - List Users.
+- `GET /api/v1/users/:id` - Get User.
+- `PATCH /api/v1/users/:id` - Update User.
+- `DELETE /api/v1/users/:id` - Delete User.
 
 ---
 
-## 📁 Repository Structure
+## 🛠️ Migration Scripts
 
-```
-.
-├── .env.example                  # Environment variables template
-├── render.yaml                   # Render deployment configuration
-├── package.json                  # Dependencies & npm scripts
-├── tsconfig.json                 # TypeScript compiler configuration
-├── mikro-orm.config.ts           # Root MikroORM configuration
-└── src/
-    ├── app.ts                    # Express application builder
-    ├── index.ts                  # Application entry point & graceful shutdown
-    ├── config/                   # Configuration loaders (env, mikro-orm, sentry)
-    ├── controllers/              # HTTP Route Controllers
-    ├── dtos/                     # Data Transfer Objects (Zod schemas & TS types)
-    ├── entities/                 # MikroORM Database Entities
-    ├── middlewares/              # Express Middlewares (RequestContext, Sentry Error, Validation)
-    ├── migrations/               # Database Migrations
-    ├── routes/                   # API Routes (Health, Users)
-    ├── rtos/                     # Response Transfer Objects & Serializers
-    ├── services/                 # Pure Business Logic Services
-    ├── types/                    # Common app & Express types
-    └── utils/                    # AppError, Logger, & Helper utilities
-```
-
----
-
-## 🛠️ Getting Started
-
-### 1. Prerequisites
-- **Node.js**: `>= 20.0.0`
-- **npm** or **pnpm** / **yarn**
-- **PostgreSQL** instance (e.g. Supabase DB or local Postgres)
-
-### 2. Environment Setup
-
-Copy `.env.example` to `.env` and fill in your database credentials:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-PORT=4000
-NODE_ENV=development
-
-# PostgreSQL / Supabase Credentials
-DB_HOST=aws-0-us-east-1.pooler.supabase.com
-DB_PORT=6543
-DB_NAME=postgres
-DB_USER=postgres.your_supabase_project_ref
-DB_PASSWORD=your_supabase_database_password
-DB_SSL=true
-
-# Sentry DSN (Optional)
-SENTRY_DSN=https://your_sentry_dsn@sentry.io/project
-```
-
-### 3. Install Dependencies
-
-```bash
-npm install
-```
-
-### 4. Database Migrations
-
-Migrations are automatically generated with timestamp prefixes by comparing your MikroORM Entities with the database schema snapshot.
-
-```bash
-# Auto-generate a timestamped migration based on entity changes
-npm run migration:create
-
-# Run pending migrations
-npm run migration:up
-
-# Rollback latest migration
-npm run migration:down
-
-# List migration status
-npm run migration:list
-```
-
-### 5. Start Development Server
-
-```bash
-npm run dev
-```
-
-The server will start at `http://localhost:4000`. Test the health check endpoint:
-```bash
-curl http://localhost:4000/health
-```
-
----
-
-## 📡 API Endpoints
-
-### Health Check
-- `GET /health` - Checks application uptime and DB connection.
-
-### User Management (`/api/v1/users`)
-- `POST /api/v1/users` - Create user
-  - Body DTO: `{ "email": "user@example.com", "name": "John Doe", "role": "user" }`
-- `GET /api/v1/users` - List users with pagination (`?page=1&limit=10&search=john`)
-- `GET /api/v1/users/:id` - Get user by UUID
-- `PATCH /api/v1/users/:id` - Update user details
-- `DELETE /api/v1/users/:id` - Remove user
-
----
-
-## 📦 Production Build & Render Deployment
-
-### Build Locally
-```bash
-npm run build
-npm start
-```
-
-### Deploy to Render
-1. Connect your repository to **Render**.
-2. Render will automatically detect `render.yaml`.
-3. Fill in your environment variables (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `SENTRY_DSN`, etc.) in the Render dashboard.
+Short npm script aliases for MikroORM migrations:
+- `npm run m:create` - Create timestamped migration schema diff.
+- `npm run m:up` - Apply pending migrations to database.
+- `npm run m:down` - Rollback latest migration.
+- `npm run m:pending` - List migration status.
