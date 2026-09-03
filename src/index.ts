@@ -1,3 +1,10 @@
+import dns from 'dns';
+
+// Force Node.js DNS resolution to prioritize IPv4 over IPv6 for Cloud/Render compatibility
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 import { MikroORM } from '@mikro-orm/core';
 import mikroOrmConfig from './config/mikro-orm.config';
 import { env } from './config/env.config';
@@ -11,7 +18,7 @@ async function bootstrap(): Promise<void> {
     logger.info('🚀 Starting application server...');
 
     // Connect to PostgreSQL (Supabase) via MikroORM
-    logger.info(`🔌 Connecting to Database [Host: ${env.DB_HOST}, DB: ${env.DB_NAME}]...`);
+    logger.info(`🔌 Connecting to Database [Host: ${env.DB_HOST}, Port: ${env.DB_PORT}, DB: ${env.DB_NAME}]...`);
     orm = await MikroORM.init(mikroOrmConfig);
     logger.info('✅ Database connection established successfully');
 
@@ -20,7 +27,8 @@ async function bootstrap(): Promise<void> {
 
     const server = app.listen(env.PORT, () => {
       logger.info(`⚡ Server is running on port ${env.PORT} [Environment: ${env.NODE_ENV}]`);
-      logger.info(`🏥 Health Check endpoint available at http://localhost:${env.PORT}/health`);
+      logger.info(`🏥 Health Check endpoint available at /health`);
+      logger.info(`📚 Scalar API Documentation available at /docs`);
     });
 
     // Graceful Shutdown Logic for Memory and Database Pool Safety
