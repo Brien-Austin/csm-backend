@@ -11,6 +11,10 @@ export const openApiSpecification = {
   },
   servers: [
     {
+      url: '/',
+      description: 'Current Application Server (Live Production / Dev)',
+    },
+    {
       url: 'http://localhost:4000',
       description: 'Local Development Server',
     },
