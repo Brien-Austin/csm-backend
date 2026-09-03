@@ -9,8 +9,10 @@ router.get('/docs/json', (_request: Request, response: Response) => {
   response.send(openApiSpecification);
 });
 
-// Endpoint 2: Interactive Scalar API Reference UI
+// Endpoint 2: Interactive Scalar API Reference UI (Inline Spec for Instant Loading)
 router.get('/docs', (_request: Request, response: Response) => {
+  const specJsonString = JSON.stringify(openApiSpecification);
+
   const htmlContent = `<!DOCTYPE html>
 <html>
   <head>
@@ -28,14 +30,16 @@ router.get('/docs', (_request: Request, response: Response) => {
   <body>
     <script
       id="api-reference"
-      data-url="/docs/json"
+      type="application/json"
       data-configuration='{
         "theme": "purple",
         "showSidebar": true,
         "searchHotKey": "k",
         "hideDownloadButton": false
-      }'
-      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+      }'>
+      ${specJsonString}
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
   </body>
 </html>`;
 
