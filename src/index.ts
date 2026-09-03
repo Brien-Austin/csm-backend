@@ -10,6 +10,7 @@ import mikroOrmConfig from './config/mikro-orm.config';
 import { env } from './config/env.config';
 import { createApp } from './app';
 import { logger } from './utils/logger';
+import { HealthPingService } from './services/health-ping.service';
 
 async function bootstrap(): Promise<void> {
   let orm: MikroORM | undefined;
@@ -29,11 +30,15 @@ async function bootstrap(): Promise<void> {
       logger.info(`⚡ Server is running on port ${env.PORT} [Environment: ${env.NODE_ENV}]`);
       logger.info(`🏥 Health Check endpoint available at /health`);
       logger.info(`📚 Scalar API Documentation available at /docs`);
+
+      // Start automated 10-minute health self-ping to keep service warm
+      HealthPingService.startSelfPingCron(10);
     });
 
     // Graceful Shutdown Logic for Memory and Database Pool Safety
     const shutdown = async (signal: string) => {
       logger.info(`⚠️  Received ${signal}. Initiating graceful shutdown...`);
+      HealthPingService.stopSelfPingCron();
 
       server.close(async () => {
         logger.info('🛑 HTTP server closed.');
