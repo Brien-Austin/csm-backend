@@ -1,6 +1,7 @@
 import { EntityManager } from '@mikro-orm/postgresql';
 import { UserEntity } from '../entities/user.entity';
-import { CreateUserDto, UpdateUserDto, PaginationQueryDto } from '../dtos/user.dto';
+import { CreateUserDto, UpdateUserDto } from '../dtos/user.dto';
+import { PaginationQueryDto } from '../dtos/common.dto';
 import { UserRto, toUserRto, toUserRtoCollection } from '../rtos/user.rto';
 import { PaginatedResult } from '../rtos/api-response.rto';
 import { AppError } from '../utils/app-error';

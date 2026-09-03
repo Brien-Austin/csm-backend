@@ -1,78 +1,85 @@
 import { Request, Response, NextFunction } from 'express';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { ContactService } from '../services/contact.service';
-import { buildSuccessRto } from '../rtos/api-response.rto';
+import { buildSuccessRto, buildPaginatedSuccessRto } from '../rtos/api-response.rto';
 import { AppError } from '../utils/app-error';
+import { extractSingleStringParam, extractOptionalStringParam } from '../utils/request.util';
 
 export class ContactController {
-  private static getService(req: Request): ContactService {
-    const em = req.em as EntityManager;
-    if (!em) {
+  private static getService(request: Request): ContactService {
+    const entityManager = request.em as EntityManager;
+    const isEntityManagerMissing = !entityManager;
+    if (isEntityManagerMissing) {
       throw AppError.internal('Entity manager not attached to request context');
     }
-    return new ContactService(em);
+    return new ContactService(entityManager);
   }
 
-  static async createContact(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async createContact(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
-      const service = ContactController.getService(req);
-      const contactRto = await service.createContact(req.body);
-      res.status(201).json(buildSuccessRto(contactRto, 'Contact created successfully'));
+      const contactService = ContactController.getService(request);
+      const contactRto = await contactService.createContact(request.body);
+      response.status(201).json(buildSuccessRto(contactRto, 'Contact created successfully'));
     } catch (error) {
-      next(error);
+      nextFunction(error);
     }
   }
 
-  static async getContactById(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getContactById(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
-      const service = ContactController.getService(req);
-      const contactRto = await service.getContactById(req.params.id);
-      res.status(200).json(buildSuccessRto(contactRto, 'Contact retrieved successfully'));
+      const contactService = ContactController.getService(request);
+      const targetContactId = extractSingleStringParam(request.params.id);
+      const contactRto = await contactService.getContactById(targetContactId);
+      response.status(200).json(buildSuccessRto(contactRto, 'Contact retrieved successfully'));
     } catch (error) {
-      next(error);
+      nextFunction(error);
     }
   }
 
-  static async getContactsByAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getContactsByAccount(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
-      const service = ContactController.getService(req);
-      const query = {
-        ...req.query,
-        accountId: req.params.accountId || req.query.accountId,
-      };
-      const { contacts, total } = await service.getContactsByAccount(query as never);
-      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 10;
+      const contactService = ContactController.getService(request);
+      const pageNumber = request.query.page ? Number(request.query.page) : 1;
+      const itemsPerPage = request.query.limit ? Number(request.query.limit) : 10;
+      const routeAccountId = request.params.accountId ? extractSingleStringParam(request.params.accountId) : undefined;
+      const queryAccountId = request.query.accountId ? extractSingleStringParam(request.query.accountId) : undefined;
+      const targetAccountId = routeAccountId || queryAccountId;
+      const searchFilterText = extractOptionalStringParam(request.query.search);
 
-      res.status(200).json(
-        buildSuccessRto(contacts, 'Contacts retrieved successfully', {
-          page,
-          limit,
-          total,
-        })
+      const { contacts, total } = await contactService.getContactsByAccount({
+        page: pageNumber,
+        limit: itemsPerPage,
+        search: searchFilterText,
+        accountId: targetAccountId,
+      });
+
+      response.status(200).json(
+        buildPaginatedSuccessRto(contacts, pageNumber, itemsPerPage, total, 'Contacts retrieved successfully')
       );
     } catch (error) {
-      next(error);
+      nextFunction(error);
     }
   }
 
-  static async updateContact(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async updateContact(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
-      const service = ContactController.getService(req);
-      const contactRto = await service.updateContact(req.params.id, req.body);
-      res.status(200).json(buildSuccessRto(contactRto, 'Contact updated successfully'));
+      const contactService = ContactController.getService(request);
+      const targetContactId = extractSingleStringParam(request.params.id);
+      const contactRto = await contactService.updateContact(targetContactId, request.body);
+      response.status(200).json(buildSuccessRto(contactRto, 'Contact updated successfully'));
     } catch (error) {
-      next(error);
+      nextFunction(error);
     }
   }
 
-  static async deleteContact(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async deleteContact(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
-      const service = ContactController.getService(req);
-      await service.deleteContact(req.params.id);
-      res.status(200).json(buildSuccessRto(null, 'Contact deleted successfully'));
+      const contactService = ContactController.getService(request);
+      const targetContactId = extractSingleStringParam(request.params.id);
+      await contactService.deleteContact(targetContactId);
+      response.status(200).json(buildSuccessRto(null, 'Contact deleted successfully'));
     } catch (error) {
-      next(error);
+      nextFunction(error);
     }
   }
 }

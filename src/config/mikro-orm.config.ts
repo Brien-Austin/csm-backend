@@ -1,4 +1,5 @@
 import { defineConfig } from '@mikro-orm/postgresql';
+import { FlushMode } from '@mikro-orm/core';
 import { Migrator } from '@mikro-orm/migrations';
 import { TsMorphMetadataProvider } from '@mikro-orm/reflection';
 import path from 'path';
@@ -33,7 +34,6 @@ export default defineConfig({
   metadataProvider: TsMorphMetadataProvider,
   debug: env.NODE_ENV === 'development',
   schemaGenerator: {
-    createSchema: true,
     ignoreSchema: ['auth', 'storage', 'realtime', 'vault', 'extensions', 'graphql', 'pg_catalog', 'information_schema', 'pgsodium', 'net', 'graphql_public'],
   },
   extensions: [Migrator],
@@ -50,6 +50,6 @@ export default defineConfig({
     fileName: (timestamp: string, name?: string) =>
       `Migration${timestamp}${name ? '_' + name : ''}`,
   },
-  flushMode: 0,
+  flushMode: FlushMode.AUTO,
   allowGlobalContext: false,
 });
