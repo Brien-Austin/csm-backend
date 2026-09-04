@@ -66,3 +66,73 @@ export enum DataSource {
   MIGRATION = 'Migration',
   API = 'API',
 }
+
+// Data Dictionary controlled: structured risk reason tags for reporting and automation
+export enum RiskReason {
+  LOW_ADOPTION = 'Low Adoption',
+  SUPPORT_ISSUES = 'Support Issues',
+  CHAMPION_LOSS = 'Champion Loss',
+  BUDGET_RISK = 'Budget Risk',
+  COMPETITION = 'Competition',
+  RENEWAL_RISK = 'Renewal Risk',
+  RELATIONSHIP_RISK = 'Relationship Risk',
+  PRODUCT_GAP = 'Product Gap',
+  OTHER = 'Other',
+}
+
+// Data Dictionary controlled: primary industry classification for reporting dimension
+export enum Industry {
+  SAAS = 'SaaS',
+  FINANCIAL_SERVICES = 'Financial Services',
+  HEALTHCARE = 'Healthcare',
+  EDUCATION = 'Education',
+  RETAIL = 'Retail',
+  MANUFACTURING = 'Manufacturing',
+  PROFESSIONAL_SERVICES = 'Professional Services',
+  MEDIA = 'Media',
+  TELECOM = 'Telecom',
+  GOVERNMENT = 'Government',
+  NONPROFIT = 'Nonprofit',
+  OTHER = 'Other',
+}
+
+// Data Dictionary controlled: employee count band ranges to simplify maintenance
+export enum CompanySize {
+  MICRO = '1-10',
+  SMALL = '11-50',
+  SMALL_MEDIUM = '51-200',
+  MEDIUM = '201-500',
+  MEDIUM_LARGE = '501-1000',
+  LARGE = '1001-5000',
+  VERY_LARGE = '5001-10000',
+  ENTERPRISE = '10000+',
+}
+
+// ISO 4217 currency codes for billing; prefer standard codes over free text
+export enum BillingCurrency {
+  USD = 'USD',
+  EUR = 'EUR',
+  GBP = 'GBP',
+  INR = 'INR',
+}
+
+// Higher-level reporting abstraction derived from HQ country; does not replace Country or State
+export enum ReportingRegion {
+  APAC = 'APAC',
+  EMEA = 'EMEA',
+  NORTH_AMERICA = 'North America',
+  LATAM = 'LATAM',
+}
+
+// Data Dictionary controlled: structured use-case tags for what the customer uses the product for
+export enum UseCaseOption {
+  ANALYTICS = 'Analytics',
+  AUTOMATION = 'Automation',
+  REPORTING = 'Reporting',
+  INTEGRATIONS = 'Integrations',
+  COLLABORATION = 'Collaboration',
+  COMPLIANCE = 'Compliance',
+  ONBOARDING = 'Onboarding',
+  SUPPORT = 'Support',
+  OTHER = 'Other',
+}

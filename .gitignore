@@ -27,3 +27,6 @@ yarn-error.log*
 
 # Testing
 coverage
+
+# MikroORM TsMorphMetadataProvider runtime cache — auto-generated, never commit
+temp/

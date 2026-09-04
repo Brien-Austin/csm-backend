@@ -10,6 +10,12 @@ import {
   AccountTier,
   HealthStatus,
   RiskLevel,
+  RiskReason,
+  Industry,
+  CompanySize,
+  BillingCurrency,
+  ReportingRegion,
+  UseCaseOption,
   RecordStatus,
   DataSource,
 } from '../enums/account.enum';
@@ -36,6 +42,8 @@ export class AccountEntity extends BaseEntity {
   accountDomain?: string;
 
   // 2. Headquarters and Geography
+  // Important: HQ geography (headquarters location) is separate from Operating geography (user footprint)
+  // and Reporting Region (reporting abstraction). Do not collapse these into a single field.
   @Property({ type: 'string', nullable: true })
   hqCountry?: string;
 
@@ -48,8 +56,9 @@ export class AccountEntity extends BaseEntity {
   @Property({ type: 'json', nullable: true })
   operatingStates?: string[];
 
-  @Property({ type: 'string', nullable: true })
-  reportingRegion?: string;
+  // Derived higher-level reporting geography; does not replace hqCountry or hqState
+  @Enum({ items: () => ReportingRegion, nullable: true })
+  reportingRegion?: ReportingRegion;
 
   // 3. Customer Classification
   @Enum({ items: () => Segment, nullable: true })
@@ -64,28 +73,33 @@ export class AccountEntity extends BaseEntity {
   @Enum({ items: () => AccountTier, nullable: true })
   accountTier?: AccountTier;
 
+  // High-touch strategic treatment flag; simple binary classification
   @Property({ type: 'boolean', default: false })
   isStrategic: boolean = false;
 
-  @Property({ type: 'string', nullable: true })
-  industry?: string;
+  @Enum({ items: () => Industry, nullable: true })
+  industry?: Industry;
 
-  @Property({ type: 'string', nullable: true })
-  companySize?: string;
+  // Employee count stored as a band/range to simplify maintenance and reduce churn
+  @Enum({ items: () => CompanySize, nullable: true })
+  companySize?: CompanySize;
 
   // 4. Health and Risk
+  // Health Status and Risk Level are independent current-state values on the Account
   @Enum({ items: () => HealthStatus, nullable: true })
   healthStatus?: HealthStatus;
 
   @Enum({ items: () => RiskLevel, nullable: true })
   riskLevel?: RiskLevel;
 
+  // Structured multi-select risk reasons stored as JSONB for reporting and automation
   @Property({ type: 'json', nullable: true })
-  riskReasons?: string[];
+  riskReasons?: RiskReason[];
 
   @Property({ type: 'text', nullable: true })
   healthNotes?: string;
 
+  // Numerical health score (0-100); do not populate before an agreed scoring model exists
   @Property({ type: 'double', nullable: true })
   healthScore?: number;
 
@@ -109,14 +123,16 @@ export class AccountEntity extends BaseEntity {
   @Property({ type: 'date', nullable: true })
   contractEndDate?: Date;
 
+  // Renewal date may differ from contractEndDate; used for renewal planning workflows
   @Property({ type: 'date', nullable: true })
   renewalDate?: Date;
 
+  // Stored as numeric decimal with explicit currency — not free text
   @Property({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   contractValueArr?: number;
 
-  @Property({ type: 'string', nullable: true })
-  billingCurrency?: string;
+  @Enum({ items: () => BillingCurrency, nullable: true })
+  billingCurrency?: BillingCurrency;
 
   @Property({ type: 'string', nullable: true })
   planTier?: string;
@@ -125,12 +141,14 @@ export class AccountEntity extends BaseEntity {
   @Property({ type: 'text', nullable: true })
   primaryCustomerGoal?: string;
 
+  // Structured multi-select use-case tags stored as JSONB; controlled values preferred over free text
   @Property({ type: 'json', nullable: true })
-  useCases?: string[];
+  useCases?: UseCaseOption[];
 
   @Property({ type: 'text', nullable: true })
   successCriteria?: string;
 
+  // Entity references to Key Products/Modules purchased or in scope — stored as ID array
   @Property({ type: 'json', nullable: true })
   keyProducts?: string[];
 
@@ -144,6 +162,7 @@ export class AccountEntity extends BaseEntity {
   @Property({ type: 'date', nullable: true })
   goLiveDate?: Date;
 
+  // System-managed timestamp; used to detect stale health/risk data
   @Property({ type: 'datetime', nullable: true })
   lastCsmReviewDate?: Date;
 
@@ -157,6 +176,7 @@ export class AccountEntity extends BaseEntity {
   @ManyToOne(() => UserEntity, { nullable: true })
   updatedBy?: UserEntity;
 
+  // Prefer archive over hard delete to preserve historical customer context
   @Enum({ items: () => RecordStatus, default: RecordStatus.ACTIVE })
   recordStatus: RecordStatus = RecordStatus.ACTIVE;
 
@@ -221,17 +241,17 @@ export class AccountEntity extends BaseEntity {
     hqState?: string;
     operatingCountries?: string[];
     operatingStates?: string[];
-    reportingRegion?: string;
+    reportingRegion?: ReportingRegion;
     segment?: Segment;
     customerType?: CustomerType;
     lifecycleStage?: LifecycleStage;
     accountTier?: AccountTier;
     isStrategic?: boolean;
-    industry?: string;
-    companySize?: string;
+    industry?: Industry;
+    companySize?: CompanySize;
     healthStatus?: HealthStatus;
     riskLevel?: RiskLevel;
-    riskReasons?: string[];
+    riskReasons?: RiskReason[];
     healthNotes?: string;
     healthScore?: number;
     primaryCsm?: UserEntity;
@@ -242,10 +262,10 @@ export class AccountEntity extends BaseEntity {
     contractEndDate?: Date;
     renewalDate?: Date;
     contractValueArr?: number;
-    billingCurrency?: string;
+    billingCurrency?: BillingCurrency;
     planTier?: string;
     primaryCustomerGoal?: string;
-    useCases?: string[];
+    useCases?: UseCaseOption[];
     successCriteria?: string;
     keyProducts?: string[];
     customerSince?: Date;

@@ -4,7 +4,15 @@ import { AccountService } from '../services/account.service';
 import { buildSuccessRto, buildPaginatedSuccessRto } from '../rtos/api-response.rto';
 import { AppError } from '../utils/app-error';
 import { extractSingleStringParam, extractOptionalStringParam } from '../utils/request.util';
-import { AccountType, Segment, HealthStatus, LifecycleStage, RecordStatus } from '../enums/account.enum';
+import {
+  AccountType,
+  Segment,
+  HealthStatus,
+  RiskLevel,
+  LifecycleStage,
+  AccountTier,
+  RecordStatus,
+} from '../enums/account.enum';
 
 export class AccountController {
   private static getService(request: Request): AccountService {
@@ -51,8 +59,11 @@ export class AccountController {
         accountType: request.query.accountType as AccountType | undefined,
         segment: request.query.segment as Segment | undefined,
         healthStatus: request.query.healthStatus as HealthStatus | undefined,
+        riskLevel: request.query.riskLevel as RiskLevel | undefined,
         lifecycleStage: request.query.lifecycleStage as LifecycleStage | undefined,
+        accountTier: request.query.accountTier as AccountTier | undefined,
         recordStatus: request.query.recordStatus as RecordStatus | undefined,
+        isStrategic: request.query.isStrategic !== undefined ? request.query.isStrategic === 'true' : undefined,
       });
 
       response.status(200).json(
@@ -74,12 +85,25 @@ export class AccountController {
     }
   }
 
+  // Soft archive endpoint — preserves all child records (Contacts, Activities, Tasks) per data retention policy
+  static async archiveAccount(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
+    try {
+      const accountService = AccountController.getService(request);
+      const targetAccountId = extractSingleStringParam(request.params.id);
+      const archivedAccountRto = await accountService.archiveAccount(targetAccountId);
+      response.status(200).json(buildSuccessRto(archivedAccountRto, 'Account archived successfully'));
+    } catch (error) {
+      nextFunction(error);
+    }
+  }
+
+  // Hard delete is intentionally replaced by soft archive to preserve historical customer context
   static async deleteAccount(request: Request, response: Response, nextFunction: NextFunction): Promise<void> {
     try {
       const accountService = AccountController.getService(request);
       const targetAccountId = extractSingleStringParam(request.params.id);
-      await accountService.deleteAccount(targetAccountId);
-      response.status(200).json(buildSuccessRto(null, 'Account deleted successfully'));
+      const archivedAccountRto = await accountService.deleteAccount(targetAccountId);
+      response.status(200).json(buildSuccessRto(archivedAccountRto, 'Account archived successfully'));
     } catch (error) {
       nextFunction(error);
     }

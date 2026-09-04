@@ -4,6 +4,7 @@ import { UserEntity } from '../entities/user.entity';
 import { CreateAccountDto, UpdateAccountDto, AccountQueryDto } from '../dtos/account.dto';
 import { AccountRto, toAccountRto, toAccountRtoCollection } from '../rtos/account.rto';
 import { AppError } from '../utils/app-error';
+import { RecordStatus } from '../enums/account.enum';
 
 export class AccountService {
   constructor(private readonly entityManager: EntityManager) {}
@@ -12,7 +13,7 @@ export class AccountService {
     const existingAccountWithName = await this.entityManager.findOne(AccountEntity, {
       accountName: accountInputData.accountName,
     });
-    
+
     const isAccountNameAlreadyTaken = Boolean(existingAccountWithName);
     if (isAccountNameAlreadyTaken) {
       throw AppError.conflict(`Account with name '${accountInputData.accountName}' already exists`);
@@ -62,9 +63,9 @@ export class AccountService {
       riskReasons: accountInputData.riskReasons,
       healthNotes: accountInputData.healthNotes,
       healthScore: accountInputData.healthScore,
-      primaryCsm: primaryCsmUser || undefined,
+      primaryCsm: primaryCsmUser ?? undefined,
       csmTeam: accountInputData.csmTeam,
-      accountManager: accountManagerUser || undefined,
+      accountManager: accountManagerUser ?? undefined,
       csmStartDate: accountInputData.csmStartDate ? new Date(accountInputData.csmStartDate) : undefined,
       contractStartDate: accountInputData.contractStartDate ? new Date(accountInputData.contractStartDate) : undefined,
       contractEndDate: accountInputData.contractEndDate ? new Date(accountInputData.contractEndDate) : undefined,
@@ -95,7 +96,7 @@ export class AccountService {
       { id: accountId },
       { populate: ['primaryCsm', 'accountManager', 'createdBy', 'updatedBy'] }
     );
-    
+
     const isAccountNotFound = !foundAccountEntity;
     if (isAccountNotFound) {
       throw AppError.notFound(`Account with ID '${accountId}' not found`);
@@ -121,17 +122,23 @@ export class AccountService {
 
     const hasAccountTypeFilter = Boolean(filterOptions.accountType);
     const hasSegmentFilter = Boolean(filterOptions.segment);
-    ifHasHealthStatusFilter: Boolean(filterOptions.healthStatus);
+    const hasHealthStatusFilter = Boolean(filterOptions.healthStatus);
     const hasLifecycleStageFilter = Boolean(filterOptions.lifecycleStage);
+    const hasRiskLevelFilter = Boolean(filterOptions.riskLevel);
+    const hasAccountTierFilter = Boolean(filterOptions.accountTier);
     const hasRecordStatusFilter = Boolean(filterOptions.recordStatus);
+    const hasIsStrategicFilter = filterOptions.isStrategic !== undefined;
 
     const queryFilters = {
       ...(hasSearchText ? { $or: searchCondition } : {}),
       ...(hasAccountTypeFilter ? { accountType: filterOptions.accountType } : {}),
       ...(hasSegmentFilter ? { segment: filterOptions.segment } : {}),
-      ...(filterOptions.healthStatus ? { healthStatus: filterOptions.healthStatus } : {}),
+      ...(hasHealthStatusFilter ? { healthStatus: filterOptions.healthStatus } : {}),
       ...(hasLifecycleStageFilter ? { lifecycleStage: filterOptions.lifecycleStage } : {}),
+      ...(hasRiskLevelFilter ? { riskLevel: filterOptions.riskLevel } : {}),
+      ...(hasAccountTierFilter ? { accountTier: filterOptions.accountTier } : {}),
       ...(hasRecordStatusFilter ? { recordStatus: filterOptions.recordStatus } : {}),
+      ...(hasIsStrategicFilter ? { isStrategic: filterOptions.isStrategic } : {}),
     };
 
     const [accountEntitiesList, totalAccountsCount] = await this.entityManager.findAndCount(
@@ -152,8 +159,12 @@ export class AccountService {
   }
 
   async updateAccount(accountId: string, updateInputData: UpdateAccountDto): Promise<AccountRto> {
-    const existingAccountEntity = await this.entityManager.findOne(AccountEntity, { id: accountId });
-    
+    const existingAccountEntity = await this.entityManager.findOne(
+      AccountEntity,
+      { id: accountId },
+      { populate: ['primaryCsm', 'accountManager', 'createdBy', 'updatedBy'] }
+    );
+
     const isAccountNotFound = !existingAccountEntity;
     if (isAccountNotFound) {
       throw AppError.notFound(`Account with ID '${accountId}' not found`);
@@ -165,14 +176,33 @@ export class AccountService {
     return toAccountRto(existingAccountEntity);
   }
 
-  async deleteAccount(accountId: string): Promise<void> {
-    const existingAccountEntity = await this.entityManager.findOne(AccountEntity, { id: accountId });
-    
+  // Soft archive: sets recordStatus to Archived and preserves all child records (Contacts, Activities, Tasks)
+  // per the spec: "Prefer archive over hard delete"
+  async archiveAccount(accountId: string): Promise<AccountRto> {
+    const existingAccountEntity = await this.entityManager.findOne(
+      AccountEntity,
+      { id: accountId },
+      { populate: ['primaryCsm', 'accountManager', 'createdBy', 'updatedBy'] }
+    );
+
     const isAccountNotFound = !existingAccountEntity;
     if (isAccountNotFound) {
       throw AppError.notFound(`Account with ID '${accountId}' not found`);
     }
 
-    await this.entityManager.removeAndFlush(existingAccountEntity);
+    const isAlreadyArchived = existingAccountEntity.recordStatus === RecordStatus.ARCHIVED;
+    if (isAlreadyArchived) {
+      throw AppError.conflict(`Account with ID '${accountId}' is already archived`);
+    }
+
+    existingAccountEntity.recordStatus = RecordStatus.ARCHIVED;
+    await this.entityManager.flush();
+
+    return toAccountRto(existingAccountEntity);
+  }
+
+  // Delegates to archiveAccount to enforce soft delete behaviour per the data retention policy
+  async deleteAccount(accountId: string): Promise<AccountRto> {
+    return this.archiveAccount(accountId);
   }
 }

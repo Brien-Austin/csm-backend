@@ -16,6 +16,7 @@ import { TaskQueryDtoSchema } from '../dtos/task.dto';
 
 const router = Router();
 
+// Account CRUD endpoints
 router.post(
   '/',
   validateRequest({ body: CreateAccountDtoSchema }),
@@ -40,13 +41,22 @@ router.patch(
   AccountController.updateAccount
 );
 
+// Soft archive endpoint — sets recordStatus to Archived and preserves all child records.
+// Prefer this over DELETE to maintain historical customer context per the data retention policy.
+router.patch(
+  '/:id/archive',
+  validateRequest({ params: AccountParamDtoSchema }),
+  AccountController.archiveAccount
+);
+
+// DELETE delegates to archive (soft delete) — no data is physically removed
 router.delete(
   '/:id',
   validateRequest({ params: AccountParamDtoSchema }),
   AccountController.deleteAccount
 );
 
-// Nested child resource endpoints for Account ID context
+// Nested child resource endpoints scoped by Account ID
 router.get(
   '/:accountId/contacts',
   validateRequest({ query: ContactQueryDtoSchema }),

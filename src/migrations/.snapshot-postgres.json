@@ -228,19 +228,24 @@
         },
         "reporting_region": {
           "name": "reporting_region",
-          "type": "varchar(255)",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 255,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
+          "enumItems": [
+            "APAC",
+            "EMEA",
+            "North America",
+            "LATAM"
+          ],
+          "mappedType": "enum"
         },
         "segment": {
           "name": "segment",
@@ -344,35 +349,57 @@
         },
         "industry": {
           "name": "industry",
-          "type": "varchar(255)",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 255,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
+          "enumItems": [
+            "SaaS",
+            "Financial Services",
+            "Healthcare",
+            "Education",
+            "Retail",
+            "Manufacturing",
+            "Professional Services",
+            "Media",
+            "Telecom",
+            "Government",
+            "Nonprofit",
+            "Other"
+          ],
+          "mappedType": "enum"
         },
         "company_size": {
           "name": "company_size",
-          "type": "varchar(255)",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 255,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
+          "enumItems": [
+            "1-10",
+            "11-50",
+            "51-200",
+            "201-500",
+            "501-1000",
+            "1001-5000",
+            "5001-10000",
+            "10000+"
+          ],
+          "mappedType": "enum"
         },
         "health_status": {
           "name": "health_status",
@@ -594,19 +621,24 @@
         },
         "billing_currency": {
           "name": "billing_currency",
-          "type": "varchar(255)",
+          "type": "text",
           "unsigned": false,
           "autoincrement": false,
           "primary": false,
           "nullable": true,
           "unique": false,
-          "length": 255,
+          "length": null,
           "precision": null,
           "scale": null,
           "default": null,
           "comment": null,
-          "enumItems": [],
-          "mappedType": "string"
+          "enumItems": [
+            "USD",
+            "EUR",
+            "GBP",
+            "INR"
+          ],
+          "mappedType": "enum"
         },
         "plan_tier": {
           "name": "plan_tier",
